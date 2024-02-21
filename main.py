@@ -1,19 +1,14 @@
-import openai
-import json
 import os
-from interview_parser import parse_transcript
+from util import parse_transcript, createUserPrompt, handleResponse, save_to_txt
 from paragraph import Paragraph
 from prompts import system
-from prompts import createUserPrompt
-from dotenv import load_dotenv
+from ai import OpenAIEngine, AIEngine
 
-# Initialize OpenAI API client
-load_dotenv()
-openai.api_key = os.getenv("OPENAI_KEY")
-
-# Load interview file
-paragraphs = parse_transcript("transcript.txt")
 interviewTopic = "Describe topic"
+ai: AIEngine = OpenAIEngine(None, system)
+# Load interview file
+paragraphs = parse_transcript("data/transcript.txt")
+
 
 codes = []
 file_path = "codes.txt" #this is the file in which the codes will be stored
@@ -29,38 +24,6 @@ if os.path.exists(file_path):
 else:
     print("Couldn't find codes file")
 
-def save_to_txt(strings, filename):
-    with open(filename, 'w') as file:
-        file.write('\n'.join(strings))
-
-def request(sentence: str, context: str, interviewerQuestion: str) -> str:
-    requestUserContent = createUserPrompt(sentence, context, interviewerQuestion, interviewTopic, list(set(codes)))
-    print(f"\nNEW REQUEST: {requestUserContent}")
-    result = openai.ChatCompletion.create(model="gpt-4", messages=[{"role": "system", "content": system}, {"role": "user", "content": requestUserContent}])
-    #print(result)
-    #print(result["choices"][0]["message"]["content"])
-    return result["choices"][0]["message"]["content"]
-
-def extract_json(s):
-    start = s.find("{")
-    end = s.rfind("}") + 1
-    return s[start:end]
-
-def handleResponse(response: str):
-    print(response)
-    print("Extracting json...")
-    try:
-        json_string = extract_json(response)
-        data = json.loads(json_string)
-        new_codes = data["codes"]
-        print(f"NEW CODES: {new_codes}")
-        codes.extend(new_codes)
-        save_to_txt(codes, "codes.txt")
-    except ValueError:  # includes simplejson.decoder.JSONDecodeError
-        print('Decoding JSON has failed')
-
-
-
 
 # Extract themes from each sentence using OpenAI's API
 currentQuestion = ""
@@ -73,21 +36,33 @@ for paragraph in paragraphs:
             for sentence in paragraph.sentences:
                 if start_from_target:
                     if sentence == target_sentence:
-                        response = request(sentence, paragraph.provideContext(sentence), currentQuestion)
-                        handleResponse(response)
+                        message = createUserPrompt(sentence, paragraph.provideContext(sentence), currentQuestion, interviewTopic, codes)
+                        response = ai.send(message)
+                        new_codes = handleResponse(response)
+                        codes.extend(new_codes)
+                        save_to_txt(codes, "data/codes.txt")
                         start_from_target = False
                 else:
-                    response = request(sentence, paragraph.provideContext(sentence), currentQuestion)
-                    handleResponse(response)
+                    message = createUserPrompt(sentence, paragraph.provideContext(sentence), currentQuestion, interviewTopic, codes)
+                    response = ai.send(message)
+                    new_codes = handleResponse(response)
+                    codes.extend(new_codes)
+                    save_to_txt(codes, "data/codes.txt")
         else:
             if start_from_target:
                 if paragraph.text == target_sentence:
-                    response = request(paragraph.text, "", currentQuestion)
-                    handleResponse(response)
+                    message = createUserPrompt(paragraph.text, "", currentQuestion, interviewTopic, codes)
+                    response = ai.send(message)
+                    new_codes = handleResponse(response)
+                    codes.extend(new_codes)
+                    save_to_txt(codes, "data/codes.txt")
                     start_from_target = False
                 else:
-                    response = request(paragraph.text, "", currentQuestion)
-                    handleResponse(response)
+                    message = createUserPrompt(paragraph.text, "", currentQuestion, interviewTopic, codes)
+                    response = ai.send(message)
+                    new_codes = handleResponse(response)
+                    codes.extend(new_codes)
+                    save_to_txt(codes, "data/codes.txt")
 
 
 save_to_txt(codes, "codes.txt")

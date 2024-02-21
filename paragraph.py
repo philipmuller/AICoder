@@ -1,9 +1,10 @@
 import re
+from typing import List
 
 class Paragraph:
     type: str
     text: str
-    sentences: [str]
+    sentences: List[str]
 
     def __init__(self, type, text):
         self.type = type
@@ -18,8 +19,6 @@ class Paragraph:
             else:
                 return contextSentence
         return contextSentence
-    
+
     def __str__(self):
         return f"type: {self.type}, text: {self.text}"
-
-        
