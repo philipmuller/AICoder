@@ -2,6 +2,7 @@ from typing import Protocol, Optional
 import openai
 from dotenv import load_dotenv
 import os
+import requests
 
 class AIEngine(Protocol):
     def send(self, message: str) -> str:
@@ -24,4 +25,27 @@ class OpenAIEngine:
                 {"role": "system", "content": self.system},
                 {"role": "user", "content": message}
             ])
-        return result["choices"][0]["message"]["content"]
+        content = result["choices"][0]["message"]["content"]
+        print(f"CONTENT IS: {content}")
+        return content
+
+class OLlamaEngine:
+    system: str
+
+    def __init__(self, system_prompt: Optional[str]) -> None:
+        self.system = system_prompt or "You are a helpful assistant"
+
+    def send(self, message: str) -> str:
+        result = requests.post(url='http://localhost:11434/api/generate',
+            json={
+                "model": "mistral",
+                "stream": False,
+                "prompt": message,
+                "system": self.system
+            }
+        )
+        print("ABOUT TO PRINT RESULT CONTENT")
+        print(result.content)
+        content = result.json()["response"]
+        print(f"CONTENT IS: {content}")
+        return content

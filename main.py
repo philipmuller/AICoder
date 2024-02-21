@@ -2,16 +2,17 @@ import os
 from util import parse_transcript, createUserPrompt, handleResponse, save_to_txt
 from paragraph import Paragraph
 from prompts import system
-from ai import OpenAIEngine, AIEngine
+from ai import OpenAIEngine, OLlamaEngine, AIEngine
 
 interviewTopic = "Describe topic"
-ai: AIEngine = OpenAIEngine(None, system)
+ai: AIEngine = OLlamaEngine(system) #OpenAIEngine(None, system)
+
 # Load interview file
 paragraphs = parse_transcript("data/transcript.txt")
 
 
 codes = []
-file_path = "codes.txt" #this is the file in which the codes will be stored
+file_path = "data/codes.txt" #this is the file in which the codes will be stored
 
 start_from_target = False
 target_sentence = "Insert the sentence you want to start with"
@@ -40,14 +41,14 @@ for paragraph in paragraphs:
                         response = ai.send(message)
                         new_codes = handleResponse(response)
                         codes.extend(new_codes)
-                        save_to_txt(codes, "data/codes.txt")
+                        save_to_txt(codes, file_path)
                         start_from_target = False
                 else:
                     message = createUserPrompt(sentence, paragraph.provideContext(sentence), currentQuestion, interviewTopic, codes)
                     response = ai.send(message)
                     new_codes = handleResponse(response)
                     codes.extend(new_codes)
-                    save_to_txt(codes, "data/codes.txt")
+                    save_to_txt(codes, file_path)
         else:
             if start_from_target:
                 if paragraph.text == target_sentence:
@@ -55,14 +56,14 @@ for paragraph in paragraphs:
                     response = ai.send(message)
                     new_codes = handleResponse(response)
                     codes.extend(new_codes)
-                    save_to_txt(codes, "data/codes.txt")
+                    save_to_txt(codes, file_path)
                     start_from_target = False
                 else:
                     message = createUserPrompt(paragraph.text, "", currentQuestion, interviewTopic, codes)
                     response = ai.send(message)
                     new_codes = handleResponse(response)
                     codes.extend(new_codes)
-                    save_to_txt(codes, "data/codes.txt")
+                    save_to_txt(codes, file_path)
 
 
-save_to_txt(codes, "codes.txt")
+save_to_txt(codes, file_path)
