@@ -43,20 +43,29 @@ def extract_json(s):
 
 # AI related
 # Create an AI prompt to send to an AI for coding
-def createUserPrompt(sentence: str, sentenceContext: str, interviewerQuestion: str, interviewTopic: str, existingCodes: [str]) -> str:
+def createBaseInstructions(sentence: str, sentenceContext: str, interviewerQuestion: str, interviewTopic: str, existingCodes: List[str], multiStep: bool) -> str:
     start = f"I am coding an interview on {interviewTopic}. I need help coding a sentence from the interview. Please generate codes for the following sentece: \"{sentence}\"\n"
     context = f"To better understand the sentence, here is the participant's response so far: {sentenceContext}\n"
     question = f"Sometimes, the interviewer question may be important to correctly code the sentece. Here is the interviewer question: {interviewerQuestion}\n"
-    analysisInstructions = f"Code the sentence by following the below instructions: \n 1. Consider these existing codes: {existingCodes}\n Do any of them apply to the sentence? List any potentially applicable codes and the reasoning as to why they apply.\n2. Carefully consider the sentence and create new codes if applicable. List the potential new codes and the reasoning as to why they apply.\n3. Generate a JSON object that contains all the applied codes, both the ones (if any) selected from existing codes and new codes. The JSON object should contain only an array of strings that represent codes. Do not include the reasoning behind each code. Do not split the codes between existing and newly created. Just add all the codes in one single array in JSON format. The array should be labeled \"codes\""
+    analysisInstructions = f"Code the sentence by following the below instructions: \n 1. Consider these existing codes: {list(set(existingCodes))}\n Do any of them apply to the sentence? List any potentially applicable codes and the reasoning as to why they apply.\n2. Carefully consider the sentence and create new codes if applicable. List the potential new codes and the reasoning as to why they apply."
+    jsonGeneration = "\n3. Generate a JSON object that contains all the applied codes, both the ones (if any) selected from existing codes and new codes. The JSON object should contain only an array of strings that represent codes. Do not include the reasoning behind each code. Do not split the codes between existing and newly created. Just add all the codes in one single array in JSON format. The array should be labeled \"codes\". I repeat, the JSON"
+
+    if multiStep == False:
+        analysisInstructions = analysisInstructions + jsonGeneration
 
     final = start+context+question+analysisInstructions
+
     if sentenceContext == "":
         final = start+question+analysisInstructions
 
     return final
 
+def createJSONAnalysisInstructions(analysisText: str) -> str:
+    core = "\n \n The above text is talking about codes applyed to sentences. Generate a JSON object that contains all the codes from the text above, both the ones (if any) selected from existing codes and new codes. The JSON object should contain only an array of strings that represent codes. Do not include the reasoning behind each code. Do not split the codes between existing and newly created. Just add all the codes in one single array in JSON format. The array should be labeled \"codes\". I repeat, the JSON should only contain ONE element, an array of codes labeled \"codes\". Here is an example of how it should look: \n{\n\"codes\": [\"code one\", \"code two\"]\n}"
+
+    return analysisText + core
+
 def handleResponse(response: str) -> List[str]:
-    print(response)
     print("Extracting json...")
     new_codes = []
     try:

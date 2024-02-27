@@ -1,10 +1,10 @@
 import os
-from util import parse_transcript, createUserPrompt, handleResponse, save_to_txt
+from util import parse_transcript, createBaseInstructions, createJSONAnalysisInstructions, handleResponse, save_to_txt
 from paragraph import Paragraph
 from prompts import system
 from ai import OpenAIEngine, OLlamaEngine, AIEngine
 
-interviewTopic = "Describe topic"
+interviewTopic = "The use of flashcards"
 ai: AIEngine = OLlamaEngine(system) #OpenAIEngine(None, system)
 
 # Load interview file
@@ -37,31 +37,39 @@ for paragraph in paragraphs:
             for sentence in paragraph.sentences:
                 if start_from_target:
                     if sentence == target_sentence:
-                        message = createUserPrompt(sentence, paragraph.provideContext(sentence), currentQuestion, interviewTopic, codes)
+                        message = createBaseInstructions(sentence, paragraph.provideContext(sentence), currentQuestion, interviewTopic, codes, True)
                         response = ai.send(message)
-                        new_codes = handleResponse(response)
+                        analysisMessage = createJSONAnalysisInstructions(response)
+                        analysisResponse = ai.send(analysisMessage, True)
+                        new_codes = handleResponse(analysisResponse)
                         codes.extend(new_codes)
                         save_to_txt(codes, file_path)
                         start_from_target = False
                 else:
-                    message = createUserPrompt(sentence, paragraph.provideContext(sentence), currentQuestion, interviewTopic, codes)
+                    message = createBaseInstructions(sentence, paragraph.provideContext(sentence), currentQuestion, interviewTopic, codes, True)
                     response = ai.send(message)
-                    new_codes = handleResponse(response)
+                    analysisMessage = createJSONAnalysisInstructions(response)
+                    analysisResponse = ai.send(analysisMessage, True)
+                    new_codes = handleResponse(analysisResponse)
                     codes.extend(new_codes)
                     save_to_txt(codes, file_path)
         else:
             if start_from_target:
                 if paragraph.text == target_sentence:
-                    message = createUserPrompt(paragraph.text, "", currentQuestion, interviewTopic, codes)
+                    message = createBaseInstructions(paragraph.text, "", currentQuestion, interviewTopic, codes, True)
                     response = ai.send(message)
-                    new_codes = handleResponse(response)
+                    analysisMessage = createJSONAnalysisInstructions(response)
+                    analysisResponse = ai.send(analysisMessage, True)
+                    new_codes = handleResponse(analysisResponse)
                     codes.extend(new_codes)
                     save_to_txt(codes, file_path)
                     start_from_target = False
                 else:
-                    message = createUserPrompt(paragraph.text, "", currentQuestion, interviewTopic, codes)
+                    message = createBaseInstructions(paragraph.text, "", currentQuestion, interviewTopic, codes, True)
                     response = ai.send(message)
-                    new_codes = handleResponse(response)
+                    analysisMessage = createJSONAnalysisInstructions(response)
+                    analysisResponse = ai.send(analysisMessage, True)
+                    new_codes = handleResponse(analysisResponse)
                     codes.extend(new_codes)
                     save_to_txt(codes, file_path)
 

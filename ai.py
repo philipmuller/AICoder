@@ -5,7 +5,7 @@ import os
 import requests
 
 class AIEngine(Protocol):
-    def send(self, message: str) -> str:
+    def send(self, message: str, ignoreSystem: bool = False) -> str:
         ...
 
 
@@ -18,7 +18,7 @@ class OpenAIEngine:
         self.key = api_key or os.getenv("OPENAI_KEY") or ""
         self.system = system_prompt or "You are a helpful assistant"
 
-    def send(self, message: str) -> str:
+    def send(self, message: str, ignoreSystem: bool = False) -> str:
         openai.api_key = self.key
         result = openai.ChatCompletion.create(model="gpt-4",
             messages=[
@@ -35,17 +35,27 @@ class OLlamaEngine:
     def __init__(self, system_prompt: Optional[str]) -> None:
         self.system = system_prompt or "You are a helpful assistant"
 
-    def send(self, message: str) -> str:
+    def send(self, message: str, ignoreSystem: bool = False) -> str:
+        print("\n------------------\n")
+        print("MESSAGE IS")
+        print("\n------------------\n")
+        print(message)
+
+        sys = "" if ignoreSystem else self.system
+        format = "json" if ignoreSystem else ""
+
         result = requests.post(url='http://localhost:11434/api/generate',
             json={
                 "model": "mistral",
                 "stream": False,
                 "prompt": message,
-                "system": self.system
+                "system": sys,
+                "format": format
             }
         )
-        print("ABOUT TO PRINT RESULT CONTENT")
-        print(result.content)
+        print("\n------------------\n")
+        print("CONTENT IS: ")
+        print("\n------------------\n")
         content = result.json()["response"]
-        print(f"CONTENT IS: {content}")
+        print(content)
         return content
